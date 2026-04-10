@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Ising Model — Monte Carlo Simulation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Georgia", serif;
+      background: #0f1117;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: normal;
+      letter-spacing: 0.03em;
+      color: #f0f0f0;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: #888;
+      font-style: italic;
+    }
+
+    .video-card {
+      background: #1a1d27;
+      border: 1px solid #2e3248;
+      border-radius: 12px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    .video-card video {
+      width: 100%;
+      display: block;
+      background: #000;
+    }
+
+    .video-caption {
+      padding: 16px 22px;
+      font-size: 0.88rem;
+      color: #7a7f99;
+      border-top: 1px solid #2e3248;
+      line-height: 1.6;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 28px;
+    }
+
+    .info-card {
+      background: #1a1d27;
+      border: 1px solid #2e3248;
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+
+    .info-card h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #5a9fd4;
+      margin-bottom: 8px;
+    }
+
+    .info-card p {
+      font-size: 0.95rem;
+      color: #ccc;
+      line-height: 1.6;
+    }
+
+    .info-card code {
+      background: #0f1117;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: "Menlo", monospace;
+      font-size: 0.88rem;
+      color: #7ec8a0;
+    }
+
+    .equation {
+      width: 100%;
+      max-width: 900px;
+      margin-top: 28px;
+      background: #1a1d27;
+      border: 1px solid #2e3248;
+      border-left: 3px solid #5a9fd4;
+      border-radius: 10px;
+      padding: 20px 26px;
+      font-size: 0.95rem;
+      color: #ccc;
+      line-height: 1.9;
+    }
+
+    .equation strong { color: #f0f0f0; }
+    .equation code {
+      background: #0f1117;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: "Menlo", monospace;
+      color: #7ec8a0;
+      font-size: 0.88rem;
+    }
+
+    footer {
+      margin-top: 48px;
+      font-size: 0.82rem;
+      color: #444;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>2D Ising Model — Metropolis Monte Carlo</h1>
+    <p>Computational Physics · Spring 2026</p>
+  </header>
+
+  <!-- ── Video ── -->
+  <div class="video-card">
+    <video controls autoplay loop muted playsinline>
+      <source src="ising_animation.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+    <div class="video-caption">
+      <strong>Animation:</strong> 20×20 lattice evolving as temperature increases
+      from <em>T = 1.0</em> to <em>T = 10.0</em> (β from 1.0 → 0.1).
+      Left: spin configuration (red = +1, blue = −1).
+      Center: order parameter ⟨|M|⟩/N².
+      Right: mean energy ⟨E⟩/N².
+      The phase transition near <em>T<sub>c</sub> ≈ 2.269</em> is clearly visible.
+    </div>
+  </div>
+
+  <!-- ── Parameter cards ── -->
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>System</h3>
+      <p>Lattice: <code>20 × 20</code><br/>
+         Spins: <code>s<sub>i</sub> = ±1</code><br/>
+         Boundary: open</p>
+    </div>
+    <div class="info-card">
+      <h3>Parameters</h3>
+      <p>Coupling: <code>J = 1</code><br/>
+         Boltzmann: <code>k<sub>B</sub> = 1</code><br/>
+         β range: <code>0.1 → 1.0</code></p>
+    </div>
+    <div class="info-card">
+      <h3>Algorithm</h3>
+      <p>Metropolis MC<br/>
+         Checkerboard update<br/>
+         400 equilibration sweeps</p>
+    </div>
+    <div class="info-card">
+      <h3>Critical Point</h3>
+      <p>Onsager exact:<br/>
+         <code>T<sub>c</sub> = 2/ln(1+√2)</code><br/>
+         <code>≈ 2.2692</code></p>
+    </div>
+  </div>
+
+  <!-- ── Physics summary ── -->
+  <div class="equation">
+    <strong>Hamiltonian:</strong>
+    <code>E = −J Σ s<sub>i</sub> s<sub>j</sub></code>
+    (sum over nearest-neighbor pairs)
+    <br/>
+    <strong>Metropolis acceptance:</strong>
+    accept flip if ΔE ≤ 0; otherwise accept with probability
+    <code>exp(−β ΔE)</code>
+    <br/>
+    <strong>Phase transition:</strong>
+    below T<sub>c</sub> the system spontaneously breaks Z₂ symmetry → ferromagnetic order.
+    Above T<sub>c</sub> thermal fluctuations destroy long-range order → paramagnetic phase.
+  </div>
+
+  <footer>
+    Generated with Python · Matplotlib · NumPy
+  </footer>
+
+</body>
+</html>
